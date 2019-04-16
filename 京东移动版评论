@@ -1,0 +1,65 @@
+import requests
+import json
+import re
+import csv
+import pandas as pd
+
+
+lists_content=[]
+word_pd=pd.read_csv(r"C:\Users\Lavector\Desktop\百事小红书\ele2.csv",engine='python',header=None).values.tolist()
+print(word_pd)
+# for m in range(1):
+for m in range(1,len(word_pd)):
+    key_word=word_pd[m][0]
+    print(key_word)
+    prouct_url=word_pd[m][1]
+    sku_id=re.findall('com/(\d+)',prouct_url)[0]
+    print(sku_id)
+
+    try:
+        for j in range(20):
+            print("第 %d 页评论"%(j+1))
+            url="https://wq.jd.com/commodity/comment/getcommentlist?callback=skuJDEvalB&sorttype=5&pagesize=10&sceneval=2&score=0&sku={}&page={}".format(sku_id,j+1)
+            headers={
+                'referer':'https://item.m.jd.com/product/2119029.html?price=6.60&fs=1&sid=&sf=newM&pos=1&csid=eacd1671d70632339905156fa4ffb917_1552283991441_1_1552283991441&ss_symbol=10&ss_mtest=app-search-none&key=%E8%B6%85%E5%B8%82%E5%91%B3%E5%85%A8%E6%AF%8F%E6%97%A5c',
+                'cookie':'shshshfpa=8f9e6ef8-490c-d8f8-0934-86a5ba895ea0-1545700097; TrackID=1Rf9dZIdMPnsmiH3SZFLsloxDoQH4-0NeKopj61PjBePgBM4gfh6DItD3BqdpkAV29f0zJ_elBkcktjhCm4qb7s5j6c3FAzVOwdDH7Z3cdBk; pinId=Gs1wY_18rJHCJb2AcSkHc7V9-x-f3wj7; __jdu=15457000956721166968475; shshshfpb=s45dC1XVCgjvNiM8%20lM5qkQ%3D%3D; _gcl_au=1.1.1887216247.1547447267; 3AB9D23F7A4B3C9B=BG6YPR3OQYSJIR6PJNFQ5RVQ6HZT3XP77G4IEBQSVNSYXSDTEWJP3ZAZPFUVUAZHBQ4YSGNFQYYZGSR4ADRC2X3GGM; unpl=V2_ZzNtbREAERR1CRFVfB9cDGJUEV4RXkpCcAFBAH0fCVVvBEcIclRCFX0UR1dnGlUUZwIZX0FcQxFFCEdkeB5fA2AFEFlBZxBFLV0CCyFbMgxlAxJUQV9CEHUOdmR4GWwFZjMSWUdTRRR0CU5QfB9fBWcEFVVFXkYTcTh2U0spbA1vChZcRWdCJXQ4Rxl7HVkBYQITXEpTRBN2CEZTfBFbDGIFFm1DZ0A%3d; __jdv=122270672|baidu-nks|t_262767352_baidunks|cpc|83118290417_0_bfc010f067184f22b88f486e77da96dd|1551321137734; __jda=122270672.15457000956721166968475.1545700096.1551321138.1552283858.14; __jdc=122270672; wxa_level=1; retina=1; webp=1; mba_muid=15457000956721166968475; SERVERID=54caa2c9dab8584c78b6c0b9c350b330; visitkey=23338639090383118; cid=9; sc_width=360; shshshfp=f5af4f2d001f9e49a7e22233f6a9b4c0; wq_logid=1552283999.983278719; __jdb=122270672.5.15457000956721166968475|14.1552283858; mba_sid=15522839201791075478557182636.4; __wga=1552284003838.1552283995030.1552283995030.1552283995030.2.1; PPRD_P=UUID.15457000956721166968475-LOGID.1552284003879.1564191502; shshshsID=c0fab4a701e90070f129963dc5bd5479_3_1552284005008; sk_history=2119029%2C',
+                'user-agent':'Mozilla/5.0 (Linux; Android 5.0; SM-G900P Build/LRX21T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.80 Mobile Safari/537.36'
+            }
+            html1=requests.get(url,headers=headers).text
+            print(html1)
+
+            html2=eval(re.findall('.*?\((.*?)\)',html1,re.S)[0].replace('"true"','""').replace('true','""').replace('"false"','""').replace('false','""'))
+            # print(2)
+            # print(type(html2))
+            # html=json.dumps(html2)
+            # print(type(html))
+            print(html2)
+            comments_num = html2['result']['productCommentSummary']['CommentCount']
+            print(comments_num)
+
+            for i in range(len(html2['result']['comments'])):
+                name=html2['result']['comments'][i]['nickname']
+                score=html2['result']['comments'][i]['score']
+                creationTime=html2['result']['comments'][i]['creationTime']
+                content=html2['result']['comments'][i]['content']
+
+                lists_content.append([key_word,prouct_url,name,score,creationTime,content])
+                print(name,score,creationTime,content)
+    except Exception as e:
+        print(e)
+        with open("果汁京东评论1.csv", "w", encoding="utf-8-sig", newline="") as f:
+            k = csv.writer(f, dialect="excel")
+            k.writerow(["关键词", "产品链接", "评论人", "评分", "评论时间", "评论内容"])
+
+            for list in lists_content:
+                k.writerow(list)
+        pass
+
+
+
+with open("果汁京东评论4.csv", "w", encoding="utf-8-sig", newline="") as f:
+    k = csv.writer(f, dialect="excel")
+    k.writerow(["关键词", "产品链接","评论人", "评分", "评论时间", "评论内容"])
+
+    for list in lists_content:
+        k.writerow(list)
