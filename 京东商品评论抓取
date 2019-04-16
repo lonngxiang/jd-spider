@@ -1,0 +1,214 @@
+import gevent
+import gevent.monkey
+
+gevent.monkey.patch_all()
+import requests
+from  lxml import etree
+import re
+import urllib
+import json
+import csv
+import time
+import pandas as pd
+
+def down_load(url):
+
+
+    html = requests.get(url=url,allow_redirects=False)
+    print(html.status_code)
+    # print(html.headers["location"])
+
+    new_id_url=html.headers["location"]
+    return  new_id_url
+
+g=[]
+
+# keyword=input("请输入查询商品：")
+# print(type(keyword))
+
+def down(keyword):
+    try:
+        for i in range(1,2):
+            url="https://search.jd.com/Search?keyword={}&enc=utf-8&page={}".format(keyword,i*2-1)
+            header={
+            # ":authority":"search.jd.com",
+            # ":method":"GET",
+            # ":scheme":" https",
+            "upgrade - insecure - requests": "1",
+            "user-agent":"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.92 Safari/537.36"
+            }
+            html=requests.get(url=url,headers=header)
+            html.encoding="utf-8"
+            # print(html.text)
+            html=html.text
+            newhtml=etree.HTML(html)
+            print(newhtml)
+            log_id=re.findall("log_id:'(.*?)'",html,re.S)[0]
+            cid=re.findall("LogParm.*?cid:(.*?),",html,re.S)[0]
+            print(cid)
+            sku_id=newhtml.xpath('//*[@id="J_goodsList"]/ul/li/@data-sku')
+            p_list=",".join('%s' % id for id in sku_id)
+            print(sku_id)
+            print(p_list)
+
+            for i in range(30):
+                price=newhtml.xpath('//*[@id="J_goodsList"]/ul/li[{}]//div[@class="p-price"]/strong/i/text()'.format(i+1))[0]
+                title1=newhtml.xpath('//*[@id="J_goodsList"]/ul/li[{}]//div[contains(@class,"p-name")]/a/em'.format(i+1))[0]#.strip()
+                title=title1.xpath('string(.)')
+                # title="".join(title)
+                # title=title.split(":")
+                if len(newhtml.xpath('//*[@id="J_goodsList"]/ul/li[{}]//div[contains(@class,"p-name")]//a/@href'.format(i+1))[0])< 40:
+                    product_url="https:"+newhtml.xpath('//*[@id="J_goodsList"]/ul/li[{}]//div[contains(@class,"p-name")]//a/@href'.format(i+1))[0]
+                else:
+                    product_url=newhtml.xpath('//*[@id="J_goodsList"]/ul/li[{}]//div[contains(@class,"p-name")]//a/@href'.format(i+1))[0]
+                    product_url=down_load(product_url)
+                # commit=html.xpath('//*[@id="J_goodsList"]/ul/li[1]/div/div[4]/strong/text()')#.strip()
+                # commit=newhtml.xpath('//*[@id="J_goodsList"]/ul/li[{}]//div[@class="p-commit"]/strong/a/text()'.format(i+1))[0]#.strip()
+            # shop_name=newhtml.xpath('//*[@id="J_goodsList"]/ul/li//div[@class="p-shop"]/span/a/text()')
+                id=re.findall('com/(\d+)\.html',product_url)[0]
+                # header3= {
+                #     # 'authority': 'search.jd.com',
+                #     # 'method': 'GET',
+                #     # 'scheme': 'https',
+                #     "Connection": "keep-alive",
+                #     # "path": "/s_new.php?keyword=%E5%A5%B3%E9%9E%8B&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&wq=%E5%A5%B3%E9%9E%8B&cid2=11731&page=2&s=27&scrolling=y&log_id=1541499650.39561&tpl=3_M",
+                #     "referer": "https://item.jd.com/{}.html".format(str(id)),
+                #     "user-agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.92 Safari/537.36",
+                #     "x-requested-with": "XMLHttpRequest",
+                #     'Cookie': '__jdv=122270672|direct|-|none|-|1545700095673; PCSYCityID=1; shshshfpa=8f9e6ef8-490c-d8f8-0934-86a5ba895ea0-1545700097; __jda=122270672.15457000956721166968475.1545700096.1545700096.1545786926.2; __jdc=122270672; __jdu=15457000956721166968475; xtest=1720.cf6b6759; ipLoc-djd=1-72-2799-0; rkv=V0500; qrsc=3; 3AB9D23F7A4B3C9B=NU7E75XKE6ITDIPP66L7HTOJGLDBN7A5RISBYNS2E3NUZXMKUTSLFGIQ6KZPEIZQ2WM6VBGE4B7RIJ6F3TX3VFEEKQ; shshshfp=4bb868926b2657cb3f4305985ea30614; shshshfpb=oWbzLuyc%2FmdMrK9dJf3hZfg%3D%3D; _gcl_au=1.1.1634569781.1545788343'
+                #
+                # }
+                # reply_url="https://sclub.jd.com/comment/productPageComments.action?productId={}&score=0&sortType=5&page=0&pageSize=10&isShadowSku=0&fold=1".format(id)
+                # time.sleep(2)
+                # aa = json.loads(requests.get(reply_url).text)['productCommentSummary']['commentCount']
+                # page_num = round(aa / 10)
+                # print(page_num)
+                reply_contents=''
+                try:
+
+                    for m in range(5):
+                        url3 = "https://sclub.jd.com/comment/productPageComments.action?productId={}&score=0&sortType=5&page={}&pageSize=10&isShadowSku=0&fold=1".format(id,m)
+
+                        html = requests.get(url3).text
+
+
+                        print(html)
+                        # new_html=re.findall('fetchJSON_.*?\((.*)\)',html,re.S)[0]
+                        #
+                        # print(new_html)
+                        new_html = json.loads(html)
+                        for k in range(len(new_html['comments'])):
+                            name = new_html['comments'][k]['nickname']
+                            time = new_html['comments'][k]['creationTime']
+                            content = new_html['comments'][k]['content']
+                            score = new_html['comments'][k]['score']
+                            reply_contents+="用户名：" + name + "时间：" + time + "评分：" + str(score) + "内容：" + content + "{{{{{}}}}}"
+
+                except:
+                    pass
+
+
+                list_1=[keyword, title, price+"元", product_url,reply_contents]
+                print(list_1)
+                g.append(list_1)
+
+
+        header1={
+        'authority': 'search.jd.com',
+        # 'method': 'GET',
+        # 'scheme': 'https',
+        "Connection":"keep-alive",
+        # "path": "/s_new.php?keyword=%E5%A5%B3%E9%9E%8B&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&wq=%E5%A5%B3%E9%9E%8B&cid2=11731&page=2&s=27&scrolling=y&log_id=1541499650.39561&tpl=3_M",
+        "referer": "https://search.jd.com/Search?keyword={}&enc=utf-8".format(urllib.parse.quote(keyword)),
+        "user-agent":"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.92 Safari/537.36",
+        "x-requested-with": "XMLHttpRequest",
+        'Cookie': '__jdv=122270672|direct|-|none|-|1545700095673; PCSYCityID=1; shshshfpa=8f9e6ef8-490c-d8f8-0934-86a5ba895ea0-1545700097; __jda=122270672.15457000956721166968475.1545700096.1545700096.1545786926.2; __jdc=122270672; __jdu=15457000956721166968475; xtest=1720.cf6b6759; ipLoc-djd=1-72-2799-0; rkv=V0500; qrsc=3; 3AB9D23F7A4B3C9B=NU7E75XKE6ITDIPP66L7HTOJGLDBN7A5RISBYNS2E3NUZXMKUTSLFGIQ6KZPEIZQ2WM6VBGE4B7RIJ6F3TX3VFEEKQ; shshshfp=4bb868926b2657cb3f4305985ea30614; shshshfpb=oWbzLuyc%2FmdMrK9dJf3hZfg%3D%3D; _gcl_au=1.1.1634569781.1545788343'
+
+        }
+        url1="https://search.jd.com/s_new.php?keyword={}&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&stock=1&page=2&s=31&scrolling=y&log_id={}&tpl=3_M".format(urllib.parse.quote(keyword),log_id)
+        html1=requests.get(url=url1,headers=header1)
+        html1.encoding="utf-8"
+        html2=html1.text
+        print(html2)
+
+        html3=etree.HTML(html2)
+        # product_url=html3.xpath('//div[contains(@class,"p-name")]//a/@href')
+        for j in range(30):
+            price=html3.xpath('//div[@class="p-price"]/strong/i/text()')[j]
+            if len(html3.xpath('//div[contains(@class,"p-name")]//a/@href')[j])<40:
+                product_url = "https:"+html3.xpath('//div[contains(@class,"p-name")]//a/@href')[j]
+            else:
+                product_url = html3.xpath('//div[contains(@class,"p-name")]//a/@href')[j]
+                product_url = down_load(product_url)
+            # commit=html3.xpath('//div[@class="p-commit"]/strong/a/text()')
+            # img_ul=html3.xpath('//div[@class="p-img"]//img/@source-data-lazy-img')
+            title2=html3.xpath('//div[contains(@class,"p-name")]/a/em')[j]
+            title=title2.xpath('string(.)')
+            id = re.findall('com/(\d+)\.html', product_url)[0]
+            # reply_url = "https://sclub.jd.com/comment/productPageComments.action?productId={}&score=0&sortType=5&page=0&pageSize=10&isShadowSku=0&fold=1".format(
+            #     id)
+            # time.sleep(2)
+            # aa = json.loads(requests.get(reply_url).text)['productCommentSummary']['commentCount']
+            # page_num = round(aa / 10)
+            # print(page_num)
+            reply_contents = ''
+            try:
+
+                for m in range(5):
+                    url3 = "https://sclub.jd.com/comment/productPageComments.action?productId={}&score=0&sortType=5&page={}&pageSize=10&isShadowSku=0&fold=1".format(
+                        id, m)
+
+                    html = requests.get(url3).text
+
+
+                    # print(html)
+                    # new_html=re.findall('fetchJSON_.*?\((.*)\)',html,re.S)[0]
+                    #
+                    # print(new_html)
+                    new_html = json.loads(html)
+                    for k in range(len(new_html['comments'])):
+                        name = new_html['comments'][k]['nickname']
+                        time = new_html['comments'][k]['creationTime']
+                        content = new_html['comments'][k]['content']
+                        score = new_html['comments'][k]['score']
+                        reply_contents += "用户名：" + name + "时间：" + time + "评分：" + str(score) + "内容：" + content + "{{{{{}}}}}"
+
+            except:
+                pass
+
+            list_2 = [keyword, title, price + "元", product_url, reply_contents]
+            # print(price,title,product_url)
+
+            print(list_2)
+            g.append(list_2)
+    except:
+        with open("京东数据10.csv", "w", encoding="utf-8", newline="") as f:
+            k = csv.writer(f, dialect="excel")
+            k.writerow(["关键词", "标题", "价格", "产品链接", "产品评论"])
+
+            for list in g:
+                k.writerow(list)
+
+print(g)
+print(len(g))
+with open("京东数据9.csv", "w", encoding="utf-8", newline="") as f:
+    k = csv.writer(f, dialect="excel")
+    k.writerow(["关键词", "标题", "价格", "产品链接", "产品评论"])
+
+    for list in g:
+        k.writerow(list)
+
+#协程版
+
+word_pd=pd.read_csv(r"C:\Users\Lavector\Desktop\百事小红书\ele.csv",engine='python',header=None).values.tolist()
+
+if __name__ == "__main__":
+    length=len(word_pd)
+    xclist = []  #构建协程链接池
+    for i in range(length):
+        xclist.append(gevent.spawn(down,word_pd[i][0] ))
+    print(xclist)
+
+
+
+    gevent.joinall(xclist)
